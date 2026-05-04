@@ -87,7 +87,12 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
     { id: "c1", name: "Aarav Sharma", phone: "+91 98765 43210" },
     { id: "c2", name: "Priya Singh", phone: "+91 98200 11223" },
   ]));
-  const [alerts, setAlerts] = useState<AlertRecord[]>(() => load<AlertRecord[]>(LS.alerts, []));
+  const [alerts, setAlerts] = useState<AlertRecord[]>(() => {
+    const raw = load<any[]>(LS.alerts, []);
+    return raw
+      .filter((a) => a && a.location && a.reportId && a.source)
+      .map((a) => ({ notifiedContacts: [], ...a })) as AlertRecord[];
+  });
   const [savedLocation, setSavedLocation] = useState<ManualLocation>(() =>
     load<ManualLocation>(LS.location, DEFAULT_LOCATION),
   );
