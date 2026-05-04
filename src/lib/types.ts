@@ -12,7 +12,7 @@ export interface SensorReading {
 export interface User {
   name: string;
   email: string;
-  password: string; // mock only
+  password: string;
 }
 
 export interface Contact {
@@ -21,12 +21,21 @@ export interface Contact {
   phone: string;
 }
 
+export type AlertResponse = "Confirmed Safe" | "Confirmed Emergency" | "No Response" | "Manual Report";
+export type AlertStatus = "Resolved" | "Escalated";
+export type ReportSource = "AI" | "Manual";
+
 export interface AlertRecord {
   id: string;
   timestamp: number;
   riskLevel: RiskLevel;
-  response: "Confirmed Safe" | "Confirmed Emergency" | "No Response";
-  status: "Resolved" | "Escalated";
+  response: AlertResponse;
+  status: AlertStatus;
   heartRate: number;
   motion: Motion;
+  source: ReportSource;
+  reason?: string;
+  location: { lat: number; lng: number; label: string };
+  notifiedContacts: { name: string; phone: string }[];
+  reportId: string;
 }

@@ -1,11 +1,12 @@
 import { AppShell } from "@/components/AppShell";
+import { LocationSetup } from "@/components/LocationSetup";
 import { useZentivo } from "@/lib/zentivo-context";
 import { MapPin } from "lucide-react";
 
 const HIGH_RISK_ZONES = [
-  { name: "Tenderloin", note: "Recent incident reports" },
-  { name: "Industrial Yard 14", note: "Low pedestrian visibility" },
-  { name: "Highway 101 Overpass", note: "Frequent accident zone" },
+  { name: "Dharavi area, Mumbai", note: "Dense pedestrian zone" },
+  { name: "Old Delhi market lanes", note: "Frequent crowding incidents" },
+  { name: "NH-48 Gurugram stretch", note: "Accident-prone highway" },
 ];
 
 export default function MapPage() {
@@ -39,7 +40,18 @@ export default function MapPage() {
               {reading.location.lat.toFixed(5)}, {reading.location.lng.toFixed(5)}
             </div>
             <div className="mt-3 text-xs">
-              Status: <span className={status === "HIGH_RISK" ? "text-danger" : status === "MONITORING" ? "text-warn" : "text-safe"}>{status.replace("_", " ")}</span>
+              Status:{" "}
+              <span
+                className={
+                  status === "HIGH_RISK"
+                    ? "text-danger"
+                    : status === "MONITORING"
+                    ? "text-warn"
+                    : "text-safe"
+                }
+              >
+                {status.replace("_", " ")}
+              </span>
             </div>
           </div>
 
@@ -61,14 +73,19 @@ export default function MapPage() {
           {lastEscalated && (
             <div className="glass-card p-5 border-danger/40">
               <h2 className="font-display font-semibold mb-1">Last escalated alert</h2>
+              <p className="text-xs text-muted-foreground font-mono">{lastEscalated.reportId}</p>
               <p className="text-xs text-muted-foreground">
                 {new Date(lastEscalated.timestamp).toLocaleString()}
               </p>
               <p className="text-sm mt-2">
-                {lastEscalated.heartRate} bpm · {lastEscalated.motion}
+                {lastEscalated.heartRate} bpm · {lastEscalated.motion} · {lastEscalated.source}
               </p>
             </div>
           )}
+        </div>
+
+        <div className="lg:col-span-3">
+          <LocationSetup />
         </div>
       </div>
     </AppShell>
