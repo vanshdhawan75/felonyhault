@@ -2,6 +2,7 @@ import { Activity, Heart, MapPin, Radio, ShieldAlert, ShieldCheck, Zap } from "l
 import { Button } from "@/components/ui/button";
 import { useZentivo } from "@/lib/zentivo-context";
 import { AppShell } from "@/components/AppShell";
+import { ManualReportButton } from "@/components/ManualReportButton";
 
 function StatusCard() {
   const { status, user } = useZentivo();
@@ -142,7 +143,8 @@ export default function Dashboard() {
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Live monitoring</p>
           <h1 className="font-display text-3xl md:text-4xl font-bold mt-1">Safety Dashboard</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <ManualReportButton />
           {simulating ? (
             <Button onClick={resetToSafe} variant="secondary" size="lg">Reset to safe</Button>
           ) : (
