@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { AlertRecord, Contact, Motion, RiskLevel, SensorReading, User, UserStatus } from "./types";
+import type { AlertRecord, AlertResponse, AlertStatus, Contact, Motion, ReportSource, RiskLevel, SensorReading, User, UserStatus } from "./types";
 
 const LS = {
   user: "zentivo.user",
   session: "zentivo.session",
   contacts: "zentivo.contacts",
   alerts: "zentivo.alerts",
+  location: "zentivo.location",
 };
 
 function load<T>(k: string, fallback: T): T {
@@ -20,14 +21,29 @@ function save<T>(k: string, v: T) {
   localStorage.setItem(k, JSON.stringify(v));
 }
 
+export const INDIAN_LOCATIONS = [
+  { label: "Mumbai, Maharashtra", lat: 19.076, lng: 72.8777 },
+  { label: "New Delhi, Delhi", lat: 28.6139, lng: 77.209 },
+  { label: "Bengaluru, Karnataka", lat: 12.9716, lng: 77.5946 },
+  { label: "Hyderabad, Telangana", lat: 17.385, lng: 78.4867 },
+  { label: "Chennai, Tamil Nadu", lat: 13.0827, lng: 80.2707 },
+  { label: "Kolkata, West Bengal", lat: 22.5726, lng: 88.3639 },
+  { label: "Pune, Maharashtra", lat: 18.5204, lng: 73.8567 },
+  { label: "Ahmedabad, Gujarat", lat: 23.0225, lng: 72.5714 },
+  { label: "Jaipur, Rajasthan", lat: 26.9124, lng: 75.7873 },
+  { label: "Lucknow, Uttar Pradesh", lat: 26.8467, lng: 80.9462 },
+  { label: "Chandigarh", lat: 30.7333, lng: 76.7794 },
+  { label: "Kochi, Kerala", lat: 9.9312, lng: 76.2673 },
+];
+
+interface ManualLocation { lat: number; lng: number; label: string }
+
 interface ZentivoState {
-  // auth
   user: User | null;
   signup: (u: User) => string | null;
   login: (email: string, password: string) => string | null;
   logout: () => void;
 
-  // sensors
   reading: SensorReading;
   risk: RiskLevel;
   status: UserStatus;
@@ -35,13 +51,11 @@ interface ZentivoState {
   simulateEmergency: () => void;
   resetToSafe: () => void;
 
-  // alert
   activeAlert: boolean;
   countdown: number;
   respondSafe: () => void;
   respondEmergency: () => void;
 
-  // data
   contacts: Contact[];
   addContact: (c: Omit<Contact, "id">) => void;
   updateContact: (id: string, c: Omit<Contact, "id">) => void;
@@ -49,35 +63,47 @@ interface ZentivoState {
 
   alerts: AlertRecord[];
   clearAlerts: () => void;
+
+  setManualLocation: (loc: ManualLocation) => void;
+  fileManualReport: (reason: string) => AlertRecord;
 }
 
 const Ctx = createContext<ZentivoState | null>(null);
 
-const ALERT_WINDOW = 12; // seconds
+const ALERT_WINDOW = 12;
 
-const baseReading = (): SensorReading => ({
+const DEFAULT_LOCATION = { lat: 19.076, lng: 72.8777, label: "Mumbai, Maharashtra" };
+
+const baseReading = (location = DEFAULT_LOCATION): SensorReading => ({
   motion: "Normal",
   heartRate: 72,
-  location: { lat: 37.7749, lng: -122.4194, label: "San Francisco, CA" },
+  location,
   timestamp: Date.now(),
 });
 
 export function ZentivoProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => load<User | null>(LS.session, null));
   const [contacts, setContacts] = useState<Contact[]>(() => load<Contact[]>(LS.contacts, [
-    { id: "c1", name: "Alex Carter", phone: "+1 555 0123" },
-    { id: "c2", name: "Priya Singh", phone: "+1 555 0987" },
+    { id: "c1", name: "Aarav Sharma", phone: "+91 98765 43210" },
+    { id: "c2", name: "Priya Singh", phone: "+91 98200 11223" },
   ]));
   const [alerts, setAlerts] = useState<AlertRecord[]>(() => load<AlertRecord[]>(LS.alerts, []));
-  const [reading, setReading] = useState<SensorReading>(baseReading);
+  const [savedLocation, setSavedLocation] = useState<ManualLocation>(() =>
+    load<ManualLocation>(LS.location, DEFAULT_LOCATION),
+  );
+  const [reading, setReading] = useState<SensorReading>(() => baseReading(load<ManualLocation>(LS.location, DEFAULT_LOCATION)));
   const [simulating, setSimulating] = useState(false);
   const [activeAlert, setActiveAlert] = useState(false);
   const [countdown, setCountdown] = useState(ALERT_WINDOW);
   const alertResolvedRef = useRef(false);
+  const contactsRef = useRef(contacts);
+  const readingRef = useRef(reading);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
+  useEffect(() => { readingRef.current = reading; }, [reading]);
 
-  // Persist
   useEffect(() => save(LS.contacts, contacts), [contacts]);
   useEffect(() => save(LS.alerts, alerts), [alerts]);
+  useEffect(() => save(LS.location, savedLocation), [savedLocation]);
   useEffect(() => {
     if (user) save(LS.session, user);
     else localStorage.removeItem(LS.session);
@@ -95,20 +121,13 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
             timestamp: Date.now(),
           };
         }
-        // gentle drift around 72bpm
         const next = Math.round(70 + Math.sin(Date.now() / 4000) * 4 + (Math.random() - 0.5) * 3);
-        return {
-          ...r,
-          motion: "Normal",
-          heartRate: next,
-          timestamp: Date.now(),
-        };
+        return { ...r, motion: "Normal", heartRate: next, timestamp: Date.now() };
       });
     }, 1200);
     return () => clearInterval(id);
   }, [simulating]);
 
-  // Compute risk
   const risk: RiskLevel = useMemo(() => {
     if (reading.heartRate > 120 || reading.motion === "Abnormal") return "HIGH";
     if (reading.heartRate > 100) return "MEDIUM";
@@ -121,19 +140,15 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
     return "SAFE";
   }, [risk]);
 
-  // Trigger alert when HIGH appears
   useEffect(() => {
     if (risk === "HIGH" && !activeAlert) {
       alertResolvedRef.current = false;
       setActiveAlert(true);
       setCountdown(ALERT_WINDOW);
-      try {
-        playAlertTone();
-      } catch {/* ignore */}
+      try { playAlertTone(); } catch {/* ignore */}
     }
   }, [risk, activeAlert]);
 
-  // Countdown
   useEffect(() => {
     if (!activeAlert) return;
     const id = setInterval(() => {
@@ -150,44 +165,49 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAlert]);
 
-  const recordAlert = (rec: Omit<AlertRecord, "id" | "timestamp">) => {
-    const a: AlertRecord = { ...rec, id: crypto.randomUUID(), timestamp: Date.now() };
-    setAlerts((prev) => [a, ...prev].slice(0, 100));
+  const buildReport = (
+    response: AlertResponse,
+    statusVal: AlertStatus,
+    source: ReportSource,
+    riskLevel: RiskLevel = "HIGH",
+    reason?: string,
+  ): AlertRecord => {
+    const r = readingRef.current;
+    const notified = statusVal === "Escalated"
+      ? contactsRef.current.map((c) => ({ name: c.name, phone: c.phone }))
+      : [];
+    return {
+      id: crypto.randomUUID(),
+      reportId: "ZEN-" + Math.random().toString(36).slice(2, 8).toUpperCase(),
+      timestamp: Date.now(),
+      riskLevel,
+      response,
+      status: statusVal,
+      heartRate: r.heartRate,
+      motion: r.motion,
+      source,
+      reason,
+      location: r.location,
+      notifiedContacts: notified,
+    };
   };
+
+  const pushAlert = (a: AlertRecord) => setAlerts((prev) => [a, ...prev].slice(0, 100));
 
   const escalate = () => {
     alertResolvedRef.current = true;
-    recordAlert({
-      riskLevel: "HIGH",
-      response: "No Response",
-      status: "Escalated",
-      heartRate: reading.heartRate,
-      motion: reading.motion,
-    });
+    pushAlert(buildReport("No Response", "Escalated", "AI"));
     setActiveAlert(false);
   };
-
   const respondSafe = () => {
     alertResolvedRef.current = true;
-    recordAlert({
-      riskLevel: "HIGH",
-      response: "Confirmed Safe",
-      status: "Resolved",
-      heartRate: reading.heartRate,
-      motion: reading.motion,
-    });
+    pushAlert(buildReport("Confirmed Safe", "Resolved", "AI"));
     setActiveAlert(false);
     resetToSafe();
   };
   const respondEmergency = () => {
     alertResolvedRef.current = true;
-    recordAlert({
-      riskLevel: "HIGH",
-      response: "Confirmed Emergency",
-      status: "Escalated",
-      heartRate: reading.heartRate,
-      motion: reading.motion,
-    });
+    pushAlert(buildReport("Confirmed Emergency", "Escalated", "AI"));
     setActiveAlert(false);
   };
 
@@ -197,7 +217,19 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
   };
   const resetToSafe = () => {
     setSimulating(false);
-    setReading(baseReading());
+    setReading(baseReading(savedLocation));
+  };
+
+  const fileManualReport = (reason: string) => {
+    const rec = buildReport("Manual Report", "Escalated", "Manual", "HIGH", reason);
+    pushAlert(rec);
+    try { playAlertTone(); } catch {/* ignore */}
+    return rec;
+  };
+
+  const setManualLocation = (loc: ManualLocation) => {
+    setSavedLocation(loc);
+    setReading((r) => ({ ...r, location: loc, timestamp: Date.now() }));
   };
 
   const signup = (u: User) => {
@@ -233,6 +265,7 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
     activeAlert, countdown, respondSafe, respondEmergency,
     contacts, addContact, updateContact, removeContact,
     alerts, clearAlerts,
+    setManualLocation, fileManualReport,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
