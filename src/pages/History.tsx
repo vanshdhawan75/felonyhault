@@ -34,7 +34,9 @@ export default function History() {
           {alerts.map((a) => {
             const escalated = a.status === "Escalated";
             const isOpen = open === a.id;
-            const Source = a.source === "AI" ? Bot : Hand;
+            const Source = a.source === "Manual" ? Hand : a.source === "AI-Self" ? BrainCircuit : Bot;
+            const sourceLabel = a.source === "AI-Self" ? "AI self-report" : `${a.source} report`;
+            const sourceColor = a.source === "Manual" ? "text-warn" : a.source === "AI-Self" ? "text-primary" : "text-danger";
             return (
               <div key={a.id} className="glass-card overflow-hidden">
                 <button
