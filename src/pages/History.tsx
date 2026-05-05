@@ -44,9 +44,9 @@ export default function History() {
                   className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-secondary/40 transition-colors"
                 >
                   {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  <div className="flex items-center gap-2 min-w-[120px]">
-                    <Source className={`h-4 w-4 ${a.source === "Manual" ? "text-warn" : "text-danger"}`} />
-                    <span className="text-xs uppercase tracking-wider">{a.source} report</span>
+                  <div className="flex items-center gap-2 min-w-[140px]">
+                    <Source className={`h-4 w-4 ${sourceColor}`} />
+                    <span className="text-xs uppercase tracking-wider">{sourceLabel}</span>
                   </div>
                   <div className="font-mono text-xs text-muted-foreground hidden sm:block">{a.reportId}</div>
                   <div className="font-mono text-xs text-muted-foreground hidden md:block">{fmt(a.timestamp)}</div>
