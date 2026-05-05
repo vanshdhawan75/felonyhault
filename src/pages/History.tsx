@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, ChevronDown, ChevronRight, Hand, Trash2 } from "lucide-react";
+import { Bot, BrainCircuit, ChevronDown, ChevronRight, Hand, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { useZentivo } from "@/lib/zentivo-context";
@@ -34,7 +34,9 @@ export default function History() {
           {alerts.map((a) => {
             const escalated = a.status === "Escalated";
             const isOpen = open === a.id;
-            const Source = a.source === "AI" ? Bot : Hand;
+            const Source = a.source === "Manual" ? Hand : a.source === "AI-Self" ? BrainCircuit : Bot;
+            const sourceLabel = a.source === "AI-Self" ? "AI self-report" : `${a.source} report`;
+            const sourceColor = a.source === "Manual" ? "text-warn" : a.source === "AI-Self" ? "text-primary" : "text-danger";
             return (
               <div key={a.id} className="glass-card overflow-hidden">
                 <button
@@ -42,9 +44,9 @@ export default function History() {
                   className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-secondary/40 transition-colors"
                 >
                   {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  <div className="flex items-center gap-2 min-w-[120px]">
-                    <Source className={`h-4 w-4 ${a.source === "Manual" ? "text-warn" : "text-danger"}`} />
-                    <span className="text-xs uppercase tracking-wider">{a.source} report</span>
+                  <div className="flex items-center gap-2 min-w-[140px]">
+                    <Source className={`h-4 w-4 ${sourceColor}`} />
+                    <span className="text-xs uppercase tracking-wider">{sourceLabel}</span>
                   </div>
                   <div className="font-mono text-xs text-muted-foreground hidden sm:block">{a.reportId}</div>
                   <div className="font-mono text-xs text-muted-foreground hidden md:block">{fmt(a.timestamp)}</div>

@@ -1,8 +1,9 @@
-import { Activity, Heart, MapPin, Radio, ShieldAlert, ShieldCheck, Zap } from "lucide-react";
+import { Activity, Bot, Heart, MapPin, Radio, ShieldAlert, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useZentivo } from "@/lib/zentivo-context";
 import { AppShell } from "@/components/AppShell";
 import { ManualReportButton } from "@/components/ManualReportButton";
+import { toast } from "sonner";
 
 function StatusCard() {
   const { status, user } = useZentivo();
@@ -134,7 +135,16 @@ function LocationCard() {
 }
 
 export default function Dashboard() {
-  const { simulating, simulateEmergency, resetToSafe, status } = useZentivo();
+  const { simulating, simulateEmergency, resetToSafe, status, selfReportDemo, runSelfReportDemo } = useZentivo();
+
+  const handleSelfReport = async () => {
+    const rec = await runSelfReportDemo();
+    if (rec) {
+      toast.success(`AI self-report ${rec.reportId} filed`, {
+        description: rec.reason,
+      });
+    }
+  };
 
   return (
     <AppShell>
@@ -144,6 +154,16 @@ export default function Dashboard() {
           <h1 className="font-display text-3xl md:text-4xl font-bold mt-1">Safety Dashboard</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={handleSelfReport}
+            disabled={selfReportDemo.active}
+            size="lg"
+            variant="outline"
+            className="border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            {selfReportDemo.active ? "AI working…" : "Run AI Self-Report"}
+          </Button>
           <ManualReportButton />
           {simulating ? (
             <Button onClick={resetToSafe} variant="secondary" size="lg">Reset to safe</Button>
@@ -154,6 +174,21 @@ export default function Dashboard() {
           )}
         </div>
       </header>
+
+      {selfReportDemo.active && (
+        <div className="glass-card p-4 mb-4 border-primary/40 flex items-center gap-3 animate-fade-in">
+          <span className="relative flex h-3 w-3">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-75 animate-ping" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-primary" />
+          </span>
+          <div className="text-sm">
+            <span className="text-primary font-semibold">AI Self-Report:</span>{" "}
+            <span className="text-muted-foreground">Scenario:</span> {selfReportDemo.scenario}
+            <span className="mx-2 text-muted-foreground">·</span>
+            <span>{selfReportDemo.phase}</span>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatusCard />

@@ -21,9 +21,9 @@ export interface Contact {
   phone: string;
 }
 
-export type AlertResponse = "Confirmed Safe" | "Confirmed Emergency" | "No Response" | "Manual Report";
+export type AlertResponse = "Confirmed Safe" | "Confirmed Emergency" | "No Response" | "Manual Report" | "AI Self-Report";
 export type AlertStatus = "Resolved" | "Escalated";
-export type ReportSource = "AI" | "Manual";
+export type ReportSource = "AI" | "Manual" | "AI-Self";
 
 export interface AlertRecord {
   id: string;
