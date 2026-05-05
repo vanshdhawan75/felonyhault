@@ -1,16 +1,25 @@
 import { useState } from "react";
-import { MapPin, Save, Search } from "lucide-react";
+import { MapPin, Save, Search, Loader2, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { INDIAN_LOCATIONS, useZentivo } from "@/lib/zentivo-context";
 import { toast } from "sonner";
 
+interface GeoResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
 export function LocationSetup() {
   const { reading, setManualLocation } = useZentivo();
   const [label, setLabel] = useState(reading.location.label);
   const [lat, setLat] = useState(String(reading.location.lat));
   const [lng, setLng] = useState(String(reading.location.lng));
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<GeoResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const apply = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,12 +56,69 @@ export function LocationSetup() {
     );
   };
 
+  const search = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    setSearching(true);
+    setResults([]);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(query)}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      const data: GeoResult[] = await res.json();
+      if (!data.length) toast.error("No matching places found");
+      setResults(data);
+    } catch {
+      toast.error("Search failed. Try again.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const pickResult = (r: GeoResult) => {
+    pick({ label: r.display_name, lat: parseFloat(r.lat), lng: parseFloat(r.lon) });
+    setResults([]);
+    setQuery("");
+  };
+
   return (
     <div className="glass-card p-5 space-y-5">
       <div className="flex items-center gap-2">
         <MapPin className="h-4 w-4 text-danger" />
         <h2 className="font-display font-semibold">Setup manual location</h2>
       </div>
+
+      <form onSubmit={search} className="space-y-2">
+        <Label htmlFor="loc-search">Search any place worldwide</Label>
+        <div className="flex gap-2">
+          <Input
+            id="loc-search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g. Eiffel Tower, MG Road Bengaluru, 10001 NYC"
+          />
+          <Button type="submit" disabled={searching} className="bg-gradient-danger shadow-danger hover:opacity-95">
+            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          </Button>
+        </div>
+        {results.length > 0 && (
+          <ul className="mt-2 max-h-56 overflow-auto rounded-md border border-border divide-y divide-border bg-background/60">
+            {results.map((r, i) => (
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={() => pickResult(r)}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 transition-colors"
+                >
+                  <div className="font-medium line-clamp-1">{r.display_name}</div>
+                  <div className="text-[10px] font-mono text-muted-foreground">
+                    {parseFloat(r.lat).toFixed(4)}, {parseFloat(r.lon).toFixed(4)}
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </form>
 
       <div>
         <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">Quick pick — India</p>
@@ -87,10 +153,10 @@ export function LocationSetup() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="submit" className="bg-gradient-danger shadow-danger hover:opacity-95">
-            <Save className="h-4 w-4 mr-1" /> Save location
+            <Save className="h-4 w-4 mr-1" /> Save coordinates
           </Button>
           <Button type="button" variant="secondary" onClick={useBrowser}>
-            <Search className="h-4 w-4 mr-1" /> Use device location
+            <Crosshair className="h-4 w-4 mr-1" /> Use device location
           </Button>
         </div>
       </form>
