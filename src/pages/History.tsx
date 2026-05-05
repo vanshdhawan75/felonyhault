@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, ChevronDown, ChevronRight, Hand, Trash2 } from "lucide-react";
+import { Bot, BrainCircuit, ChevronDown, ChevronRight, Hand, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { useZentivo } from "@/lib/zentivo-context";
