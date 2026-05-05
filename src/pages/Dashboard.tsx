@@ -1,8 +1,9 @@
-import { Activity, Heart, MapPin, Radio, ShieldAlert, ShieldCheck, Zap } from "lucide-react";
+import { Activity, Bot, Heart, MapPin, Radio, ShieldAlert, ShieldCheck, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useZentivo } from "@/lib/zentivo-context";
 import { AppShell } from "@/components/AppShell";
 import { ManualReportButton } from "@/components/ManualReportButton";
+import { toast } from "sonner";
 
 function StatusCard() {
   const { status, user } = useZentivo();
