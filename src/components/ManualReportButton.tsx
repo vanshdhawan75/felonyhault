@@ -8,11 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { useZentivo } from "@/lib/zentivo-context";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const REASONS = ["Medical emergency", "Accident", "Feeling unsafe", "Harassment", "Other"];
 
 export function ManualReportButton() {
   const { fileManualReport, contacts } = useZentivo();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState(REASONS[0]);
   const [details, setDetails] = useState("");
@@ -27,6 +29,7 @@ export function ManualReportButton() {
     });
     setOpen(false);
     setDetails("");
+    navigate(`/dispatch/${rec.reportId}`);
   };
 
   return (
