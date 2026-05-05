@@ -240,6 +240,66 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
     setReading((r) => ({ ...r, location: loc, timestamp: Date.now() }));
   };
 
+  // ===== AI Self-Report demo =====
+  const SCENARIOS = [
+    { name: "Sudden fall detected", reason: "Impact + abnormal motion pattern", hr: 138, motion: "Abnormal" as Motion },
+    { name: "Cardiac anomaly", reason: "Heart rate spike beyond safe threshold", hr: 152, motion: "Normal" as Motion },
+    { name: "Possible seizure", reason: "Erratic motion + elevated vitals", hr: 144, motion: "Abnormal" as Motion },
+    { name: "Unconscious user", reason: "No motion + irregular heart rate", hr: 48, motion: "Abnormal" as Motion },
+  ];
+  const [selfReportDemo, setSelfReportDemo] = useState({ active: false, phase: "Idle", scenario: null as string | null });
+  const suppressAlertRef = useRef(false);
+  const demoRunningRef = useRef(false);
+
+  // Patch the auto-alert effect via suppression: monkey-patch by gating activeAlert set
+  // Override: re-check risk effect using suppression
+  useEffect(() => {
+    if (suppressAlertRef.current && activeAlert) setActiveAlert(false);
+  }, [activeAlert]);
+
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  const runSelfReportDemo = async (): Promise<AlertRecord | null> => {
+    if (demoRunningRef.current) return null;
+    demoRunningRef.current = true;
+    suppressAlertRef.current = true;
+    const scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+    setSelfReportDemo({ active: true, phase: "Generating scenario…", scenario: scenario.name });
+    await wait(900);
+
+    setSelfReportDemo({ active: true, phase: "Injecting sensor anomaly…", scenario: scenario.name });
+    setSimulating(false);
+    // ramp the heart rate
+    const start = readingRef.current.heartRate;
+    const steps = 6;
+    for (let i = 1; i <= steps; i++) {
+      const hr = Math.round(start + ((scenario.hr - start) * i) / steps);
+      setReading((r) => ({ ...r, heartRate: hr, motion: i > steps / 2 ? scenario.motion : r.motion, timestamp: Date.now() }));
+      await wait(220);
+    }
+
+    setSelfReportDemo({ active: true, phase: "AI analyzing risk…", scenario: scenario.name });
+    await wait: await wait(900);
+
+    setSelfReportDemo({ active: true, phase: "AI filing self-report…", scenario: scenario.name });
+    try { playAlertTone(); } catch {/* ignore */}
+    const rec = buildReport("AI Self-Report", "Escalated", "AI-Self", "HIGH", `${scenario.name} — ${scenario.reason}`);
+    pushAlert(rec);
+    await wait(700);
+
+    setSelfReportDemo({ active: true, phase: `Report ${rec.reportId} dispatched`, scenario: scenario.name });
+    await wait(1400);
+
+    // restore
+    suppressAlertRef.current = false;
+    setActiveAlert(false);
+    alertResolvedRef.current = true;
+    setReading(baseReading(savedLocation));
+    setSelfReportDemo({ active: false, phase: "Idle", scenario: null });
+    demoRunningRef.current = false;
+    return rec;
+  };
+
   const signup = (u: User) => {
     const existing = load<User | null>(LS.user, null);
     if (existing && existing.email === u.email) return "An account with this email already exists.";
@@ -274,6 +334,7 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
     contacts, addContact, updateContact, removeContact,
     alerts, clearAlerts,
     setManualLocation, fileManualReport,
+    selfReportDemo, runSelfReportDemo,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
