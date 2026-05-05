@@ -279,7 +279,7 @@ export function ZentivoProvider({ children }: { children: React.ReactNode }) {
     }
 
     setSelfReportDemo({ active: true, phase: "AI analyzing risk…", scenario: scenario.name });
-    await wait: await wait(900);
+    await wait(900);
 
     setSelfReportDemo({ active: true, phase: "AI filing self-report…", scenario: scenario.name });
     try { playAlertTone(); } catch {/* ignore */}
