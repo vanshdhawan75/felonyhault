@@ -66,6 +66,9 @@ interface ZentivoState {
 
   setManualLocation: (loc: ManualLocation) => void;
   fileManualReport: (reason: string) => AlertRecord;
+
+  selfReportDemo: { active: boolean; phase: string; scenario: string | null };
+  runSelfReportDemo: () => Promise<AlertRecord | null>;
 }
 
 const Ctx = createContext<ZentivoState | null>(null);
