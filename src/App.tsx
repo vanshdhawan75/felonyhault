@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Contacts from "./pages/Contacts";
 import History from "./pages/History";
 import MapPage from "./pages/MapPage";
+import Dispatch from "./pages/Dispatch";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+            <Route path="/dispatch/:reportId" element={<ProtectedRoute><Dispatch /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ZentivoProvider>

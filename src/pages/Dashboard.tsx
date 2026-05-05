@@ -4,6 +4,7 @@ import { useZentivo } from "@/lib/zentivo-context";
 import { AppShell } from "@/components/AppShell";
 import { ManualReportButton } from "@/components/ManualReportButton";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 function StatusCard() {
   const { status, user } = useZentivo();
@@ -135,7 +136,8 @@ function LocationCard() {
 }
 
 export default function Dashboard() {
-  const { simulating, simulateEmergency, resetToSafe, status, selfReportDemo, runSelfReportDemo } = useZentivo();
+  const { status, selfReportDemo, runSelfReportDemo } = useZentivo();
+  const navigate = useNavigate();
 
   const handleSelfReport = async () => {
     const rec = await runSelfReportDemo();
@@ -143,6 +145,7 @@ export default function Dashboard() {
       toast.success(`AI self-report ${rec.reportId} filed`, {
         description: rec.reason,
       });
+      navigate(`/dispatch/${rec.reportId}`);
     }
   };
 
@@ -165,13 +168,6 @@ export default function Dashboard() {
             {selfReportDemo.active ? "AI working…" : "Run AI Self-Report"}
           </Button>
           <ManualReportButton />
-          {simulating ? (
-            <Button onClick={resetToSafe} variant="secondary" size="lg">Reset to safe</Button>
-          ) : (
-            <Button onClick={simulateEmergency} size="lg" className="bg-gradient-danger shadow-danger hover:opacity-95">
-              <ShieldAlert className="h-4 w-4 mr-2" /> Simulate Emergency
-            </Button>
-          )}
         </div>
       </header>
 
